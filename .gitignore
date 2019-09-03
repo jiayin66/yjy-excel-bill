@@ -1,0 +1,25 @@
+#ignore all *.classpath
+*.classpath
+#ignore all *.project
+*.project
+#ignore all *.prefs
+*.prefs
+#
+*.MF
+#
+*.class
+*.jar.original
+*.jar
+*.lst
+*.facet.core.xml
+.project
+*.pom.properties
+*.properties
+target
+.springBeans
+transaction-logs
+*.log
+/logs/
+/.factorypath
+/.settings/
+/.apt_generated/
