@@ -12,4 +12,6 @@ public interface ExcelService {
 
 	void readExcel(MultipartFile file);
 
+	void readJiluExcel(MultipartFile record,MultipartFile user,HttpServletResponse response,String type);
+
 }
