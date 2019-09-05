@@ -12,19 +12,19 @@ import lombok.Setter;
 @Setter
 public class RecodeModel {
 	@JSONField(ordinal=1)
-	@Excel(name = "姓名", orderNum = "0")
+	@Excel(name = "姓名", orderNum = "0",width = 15)
 	private String name;
 	
 	@JSONField(ordinal=2)
-	@Excel(name = "金额", orderNum = "1")
+	@Excel(name = "金额", orderNum = "1",width = 15)
 	private BigDecimal money;
 	
 	@JSONField(ordinal=3)
-	@Excel(name = "余额", orderNum = "2")
+	@Excel(name = "余额", orderNum = "2",width = 15)
 	private BigDecimal allMoney;
 	
 	@JSONField(ordinal=4)
-	@Excel(name = "下一位", orderNum = "3")
+	@Excel(name = "下一位", orderNum = "3",width = 30, type = 1)
 	private String next;
 	public RecodeModel() {
 		super();

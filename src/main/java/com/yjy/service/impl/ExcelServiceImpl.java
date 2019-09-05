@@ -143,12 +143,23 @@ public class ExcelServiceImpl implements ExcelService{
 		if("0".equals(type)) {
 			excelTemplateExporter.exportExcel(result, "炊事班-记账", "记账", RecodeModel.class, "炊事班-记账-不排序.xls", response);
 		}else if("1".equals(type)){
+			for(RecodeModel recodeModel:result) {
+				if(recodeModel.getAllMoney()==null) {
+					recodeModel.setAllMoney(new BigDecimal(0));
+				}
+				String next = recodeModel.getNext();
+				if(StringUtils.isNotBlank(next)) {
+					next=next.trim().replace("，", "").replace(",", "").replace(" ", "");
+					next=next.replace("\u202D","").replace("\u202C","");
+					recodeModel.setNext(next);
+				}
+			}
 			Collections.sort(result,new Comparator() {
-
+				//排序规则原因，如果没有就默认0把
 				public int compare(Object o1, Object o2) {
 					RecodeModel b=	(RecodeModel)o1;
 					RecodeModel a=	(RecodeModel)o2;
-					return a.getAllMoney().subtract(b.getAllMoney()).intValue();
+					return	a.getAllMoney().subtract(b.getAllMoney()).intValue();
 				}
 				
 			});
