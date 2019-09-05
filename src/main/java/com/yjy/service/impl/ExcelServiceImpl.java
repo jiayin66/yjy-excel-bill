@@ -85,11 +85,10 @@ public class ExcelServiceImpl implements ExcelService{
 		//（2）这个表示中间数据，支持二次导入，为了查看缺失什么
 		List<UserRecord> commenResult=new ArrayList<UserRecord>();
 		for(int i=0;i<txtRecordList.size();i++) {
-			//for(UserRecord userRecord:txtRecordList) {
 			String txtRecord = txtRecordList.get(i).getTxtRecord();
 			System.out.println("待判断的记录："+txtRecord);
 			//【1】按照这个正则匹配过滤时间格式: 熊东飞(211435812) 11:51:27
-			String patternTime =".*(\\d+:\\d+:\\d+).*";
+			String patternTime =".*(\\d{1,2}:\\d{1,2}:\\d{1,2}).*";
 			Matcher matcherTime = Pattern.compile(patternTime).matcher(txtRecord);
 			if(matcherTime.find()) {
 				System.out.println("【1】此条记录是时间（两个冒号判断），过滤这条记录"+txtRecord);
@@ -131,11 +130,11 @@ public class ExcelServiceImpl implements ExcelService{
 				result.add(recodeModel);
 				continue;
 			}
-			System.out.println("没有被规则拦截的无效记录"+txtRecord);
+			System.err.println("没有被规则拦截的无效记录:"+txtRecord);
 		}
-		System.out.println("两个金额的有效记录"+JSON.toJSONString(payLoadTwo));
-		System.out.println(payLoadTwo.size());
-		System.out.println("一个金额的有效记录"+JSON.toJSONString(payLoadOne));
+		//System.out.println("两个金额的有效记录"+JSON.toJSONString(payLoadTwo));
+		//System.out.println(payLoadTwo.size());
+		//System.out.println("一个金额的有效记录"+JSON.toJSONString(payLoadOne));
 		System.out.println("完整记录个数"+result.size());
 		for(RecodeModel RecodeModel:result) {
 			System.out.println(JSON.toJSONString(RecodeModel));
