@@ -95,7 +95,7 @@ public class ExcelServiceImpl implements ExcelService{
 				continue;
 			}
 		
-			//【2】只匹配2个金额的数据: 聂鑫勇5.5 余额819下一位王亮明
+			//【2】只匹配2个金额的数据: 聂鑫勇5.5 余额819下一位王亮明，李谨延 3  下一位/个 张志龙 余额 917
 			String patternTwoMatch ="\\D*(\\d+\\.?\\d*)[^0-9\\.]+(\\d+\\.?\\d*)\\D*";
 			Matcher matcherTwo = Pattern.compile(patternTwoMatch).matcher(txtRecord);
 			if(matcherTwo.find()) {
@@ -110,7 +110,7 @@ public class ExcelServiceImpl implements ExcelService{
 				}
 				continue;
 			}
-			//【3】匹配这种 严志凌下一位 镇阳
+			//【3】匹配这种 ：严志凌下一位 镇阳
 			String patternNext ="(\\D*)下一位(\\D*)";
 			Matcher matcherNext = Pattern.compile(patternNext).matcher(txtRecord);
 			if(matcherNext.find()) {
@@ -135,7 +135,7 @@ public class ExcelServiceImpl implements ExcelService{
 		//System.out.println("两个金额的有效记录"+JSON.toJSONString(payLoadTwo));
 		//System.out.println(payLoadTwo.size());
 		//System.out.println("一个金额的有效记录"+JSON.toJSONString(payLoadOne));
-		System.out.println("完整记录个数"+result.size());
+		System.out.println("完整记录个数:"+result.size()+",所有记录列表如下：");
 		for(RecodeModel RecodeModel:result) {
 			System.out.println(JSON.toJSONString(RecodeModel));
 		}

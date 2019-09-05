@@ -2,6 +2,8 @@ package com.yjy.model;
 
 import java.math.BigDecimal;
 
+import com.alibaba.fastjson.annotation.JSONField;
+
 import cn.afterturn.easypoi.excel.annotation.Excel;
 import lombok.Getter;
 import lombok.Setter;
@@ -9,12 +11,19 @@ import lombok.Setter;
 @Getter
 @Setter
 public class RecodeModel {
+	@JSONField(ordinal=1)
 	@Excel(name = "姓名", orderNum = "0")
 	private String name;
+	
+	@JSONField(ordinal=2)
 	@Excel(name = "金额", orderNum = "1")
 	private BigDecimal money;
+	
+	@JSONField(ordinal=3)
 	@Excel(name = "余额", orderNum = "2")
 	private BigDecimal allMoney;
+	
+	@JSONField(ordinal=4)
 	@Excel(name = "下一位", orderNum = "3")
 	private String next;
 	public RecodeModel() {
