@@ -69,25 +69,26 @@ public class ExcelServiceImpl implements ExcelService{
 	}
 
 	public void readJiluExcel(MultipartFile record,MultipartFile user,HttpServletResponse response,String type) {
-		//1.解析用户
+		//1.解析用户拿到用户id集合
 		List<User> userList = getTxt(user,User.class);
 		List<String> userStrList=new ArrayList<String>();
 		for(User userModel:userList) {
 			userStrList.add(userModel.getName());
 		}
-		//2.解析记录
+		//2.解析报账记录，拿到有效行
 		List<UserRecord> txtRecordList = getTxt(record,UserRecord.class);
 		System.out.println("读取excel拿到的数据"+JSON.toJSONString(txtRecordList));
 		List<String> payLoadTwo=new ArrayList<String>();
 		List<String> payLoadOne=new ArrayList<String>();
-		//最终结果
+		//（1）最终结果
 		List<RecodeModel> result=new ArrayList<RecodeModel>();
-		//这个表示中间数据，支持二次导入，为了查看缺失什么
+		//（2）这个表示中间数据，支持二次导入，为了查看缺失什么
 		List<UserRecord> commenResult=new ArrayList<UserRecord>();
-		for(UserRecord userRecord:txtRecordList) {
-			String txtRecord = userRecord.getTxtRecord();
+		for(int i=0;i<txtRecordList.size();i++) {
+			//for(UserRecord userRecord:txtRecordList) {
+			String txtRecord = txtRecordList.get(i).getTxtRecord();
 			System.out.println("待判断的记录："+txtRecord);
-			//【1】按照这个正则匹配过滤时间格式
+			//【1】按照这个正则匹配过滤时间格式: 熊东飞(211435812) 11:51:27
 			String patternTime =".*(\\d+:\\d+:\\d+).*";
 			Matcher matcherTime = Pattern.compile(patternTime).matcher(txtRecord);
 			if(matcherTime.find()) {
@@ -95,26 +96,39 @@ public class ExcelServiceImpl implements ExcelService{
 				continue;
 			}
 		
-			//【2】只匹配2个金额的数据
-			String patternTwoMatch ="\\D*(\\d+\\.?\\d*)\\D*(\\d+\\.?\\d*)\\D*";
+			//【2】只匹配2个金额的数据: 聂鑫勇5.5 余额819下一位王亮明
+			String patternTwoMatch ="\\D*(\\d+\\.?\\d*)[^0-9\\.]+(\\d+\\.?\\d*)\\D*";
 			Matcher matcherTwo = Pattern.compile(patternTwoMatch).matcher(txtRecord);
 			if(matcherTwo.find()) {
 				System.out.println("此条记录是有效记录（两个金额）："+txtRecord);
-				//把基础数据写这里，方便查看缺失又能重新导入
+				//（2.1）把基础数据写这里，方便查看缺失又能重新导入
 				commenResult.add(new UserRecord(txtRecord));
 				payLoadTwo.add(txtRecord);
 				RecodeModel recodeModel=getRecodeModel(txtRecord,matcherTwo,userStrList);
 				if(recodeModel!=null) {
+					//(1.1)添加有效数据
 					result.add(recodeModel);
 				}
 				continue;
 			}
-			//【3】没有报余额，只报当前金额
-			String patternOneMatch =".*(\\d+(\\.)?\\d*).*";
+			//【3】匹配这种 严志凌下一位 镇阳
+			String patternNext ="(\\D*)下一位(\\D*)";
+			Matcher matcherNext = Pattern.compile(patternNext).matcher(txtRecord);
+			if(matcherNext.find()) {
+				//(1.2)修改有效数据
+				//(2.2)修改中间表数据
+				setNext(result,matcherNext,commenResult);
+				continue;
+			}
+			
+			//【4】没有报余额，只报当前金额  ：熊东飞 4.5 下一个 魏冲
+			String patternOneMatch ="(\\D*)(\\d+\\.?\\d*)(\\D*)";
 			Matcher matcherOne = Pattern.compile(patternOneMatch).matcher(txtRecord);
 			if(matcherOne.find()) {
 				System.out.println("只有一个金额的记录（一个金额）"+txtRecord);
 				payLoadOne.add(txtRecord);
+				RecodeModel recodeModel=setOneMatch(matcherOne,txtRecord,userStrList);
+				result.add(recodeModel);
 				continue;
 			}
 			System.out.println("没有被规则拦截的无效记录"+txtRecord);
@@ -149,6 +163,56 @@ public class ExcelServiceImpl implements ExcelService{
 	}
 	
 	
+	private RecodeModel setOneMatch(Matcher matcherOne, String txtRecord,List<String> userStrList) {
+		RecodeModel recodeModel=null;
+		String one = matcherOne.group(1);
+		String two = matcherOne.group(2);
+		String three = matcherOne.group(3);
+		if(three.contains("下一位")) {
+			three=three.replace("下一位", "");
+		}
+		if(three.contains("下一个")) {
+			three=three.replace("下一个", "");
+		}
+		for(String userName:userStrList) {
+			if(one.contains(userName)) {
+				recodeModel=new RecodeModel(userName,new BigDecimal(two),null,three);
+				return recodeModel;
+			}
+		}
+		return null;
+	}
+
+	private void setNext(List<RecodeModel> result, Matcher matcherNext,List<UserRecord> commenResult) {
+		String name = matcherNext.group(1);
+		String next = matcherNext.group(2);
+		String realName=null;
+		for(RecodeModel recodeModel:result) {
+			if(name.indexOf(recodeModel.getName())!=-1) {
+				realName=recodeModel.getName();
+				recodeModel.setNext(next);
+				System.out.println("成功设置下一位："+JSON.toJSONString(recodeModel));
+			}
+			
+		}
+		//修改中间表
+		if(realName==null) {
+			//说明上面的结果没有匹配上，本条数据是无效的
+			return;
+		}
+		for(UserRecord userRecord:commenResult) {
+			String txtRecord = userRecord.getTxtRecord();
+			//为了避免别人的下一位也有这个名字再次匹配
+			/*String patternPreName ="(\\D*)\\d+.*";
+			Matcher matcherPreName = Pattern.compile(patternPreName).matcher(txtRecord);
+			String preName = matcherPreName.group(1);*/
+			String preName=txtRecord.substring(0, 9);
+			if(preName.contains(realName)) {
+				userRecord.setTxtRecord(txtRecord+"|补|"+next);
+			}
+		}
+	}
+
 	/**
 	 * 两个参数的匹配
 	 * eg：
@@ -163,7 +227,7 @@ public class ExcelServiceImpl implements ExcelService{
 		String userName=null;
 		String nexName=null;
 		//【2.1】只取开头和末尾数据
-		String patternMatch ="(\\D*)\\d+\\.?\\d*\\D*\\d+\\.?\\d*(\\D*)";
+		String patternMatch ="(\\D*)\\d+\\.?\\d*(\\D*)\\d+\\.?\\d*(\\D*)";
 		Matcher matcher = Pattern.compile(patternMatch).matcher(txtRecord);
 		if(!matcher.find()) {
 			System.err.println("取开头和结尾没有匹配上："+txtRecord);
@@ -171,7 +235,14 @@ public class ExcelServiceImpl implements ExcelService{
 		}
 		System.out.println("成功读取金额之前的人和余额之后的人:"+txtRecord);
 		String one = matcher.group(1);
-		String two = matcher.group(2);
+		String two = matcher.group(3);
+		if(matcher.group(2).contains("下一位")) {
+			two=matcher.group(2).replace("下一位", "");
+			if(two.contains("余额")) {
+				two=two.replace("余额", "");
+			}
+		}
+		
 		//【2.2】必须跟数据库用户名保持一致，否则记账重复。下一位无需截取
 		if (StringUtils.isNotBlank(one)) {
 			for(String str:userStrList) {
