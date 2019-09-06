@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -149,9 +150,9 @@ public class ExcelServiceImpl implements ExcelService{
 				}
 				String next = recodeModel.getNext();
 				if(StringUtils.isNotBlank(next)) {
-					next=next.trim().replace("，", "").replace(",", "").replace(" ", "");
-					next=next.replace("\u202D","").replace("\u202C","");
+					next=subSpacialChar(next).trim().replace(",", "").replace("，", "");
 					recodeModel.setNext(next);
+					
 				}
 			}
 			Collections.sort(result,new Comparator() {
@@ -310,4 +311,49 @@ public class ExcelServiceImpl implements ExcelService{
 		return null;
 	}
 
+	/**
+	 * 截取特殊63的字符
+	 * @param str
+	 * @return
+	 */
+	private String subSpacialChar(String str) {
+		byte[] bytes=null;
+		try {
+			bytes = str.getBytes("gbk");
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		}
+		int count=0;
+		for(int i=0;i<bytes.length;i++) {
+			if(bytes[i]==63) {
+				count++;
+			}
+		}
+		//不包含63的特殊字符
+		if(count==0) {
+			return str;
+		}
+		byte[]  result=new byte[bytes.length-count];
+		//遇到63就自增2个
+		int x=0;
+		int y=0;
+		for(int i=0;i<bytes.length;i++) {
+			if(bytes[i]==63) {
+				y++;
+				continue;
+			}
+			result[x]=bytes[y];
+			y++;
+			x++;
+		}
+		String resultStr=null;
+		try {
+			resultStr = new String(result,"gbk");
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		}
+		return resultStr;
+	}
+	
+	
 }
