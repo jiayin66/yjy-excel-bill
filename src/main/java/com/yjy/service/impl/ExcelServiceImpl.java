@@ -132,7 +132,7 @@ public class ExcelServiceImpl implements ExcelService{
 			//对next中包含的各种乱数据处理
 			String next = recodeModel.getNext();
 			if(StringUtils.isNotBlank(next)) {
-				next=subSpacialChar(next).replace("下一位", "").replace("下一个", "").replace("，", "").replace(",", "");
+				next=subSpacialChar(next).replace("下一位", "").replace("下一个", "").replace("，", "").replace(",", "").replace("个", "").replace("位", "");
 				recodeModel.setNext(next);
 			}
 			//对余额进行初始化
