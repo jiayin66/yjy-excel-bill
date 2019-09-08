@@ -70,8 +70,6 @@ public class ExcelServiceImpl implements ExcelService{
 		List<UserRecord> txtRecordList = getTxt(record,UserRecord.class);
 		System.out.println("读取excel拿到的数据"+JSON.toJSONString(txtRecordList));
 		System.out.println("本次判断总数："+txtRecordList.size());
-		List<String> payLoadTwo=new ArrayList<String>();
-		List<String> payLoadOne=new ArrayList<String>();
 		//（1）最终结果
 		List<RecodeModel> result=new ArrayList<RecodeModel>();
 		//（2）这个表示中间数据，支持二次导入，为了查看缺失什么
@@ -88,13 +86,14 @@ public class ExcelServiceImpl implements ExcelService{
 			}
 		
 			//【2】只匹配2个金额的数据: 聂鑫勇5.5 余额819下一位王亮明，李谨延 3  下一位/个 张志龙 余额 917
-			String patternTwoMatch ="\\D*(\\d+\\.?\\d*)[^0-9\\.]+(\\d+\\.?\\d*)\\D*";
+			//String patternTwoMatch ="\\D*(\\d+\\.?\\d*)[^0-9\\.]+(\\d+\\.?\\d*)\\D*";
+			//此规则，开头必须有名字。末尾可以没名字
+			String patternTwoMatch ="[^0-9\\.]*([0-9\\.]+)[^0-9\\.]+([0-9\\.]+)[^0-9\\.]*";
 			Matcher matcherTwo = Pattern.compile(patternTwoMatch).matcher(txtRecord);
 			if(matcherTwo.find()) {
 				System.out.println("-->有效待处理，此条记录有两个金额："+txtRecord);
 				//（2.1）把基础数据写这里，方便查看缺失又能重新导入
 				commenResult.add(new UserRecord(txtRecord));
-				payLoadTwo.add(txtRecord);
 				//真正的处理数据
 				RecodeModel recodeModel=getRecodeModel(txtRecord,matcherTwo,userStrList);
 				if(recodeModel!=null) {
@@ -114,12 +113,12 @@ public class ExcelServiceImpl implements ExcelService{
 				continue;
 			}
 			
-			//【4】没有报余额，只报当前金额  ：熊东飞 4.5 下一个 魏冲
-			String patternOneMatch ="(\\D*)(\\d+\\.?\\d*)(\\D*)";
+			//【4】没有报余额，只报当前金额  ：熊东飞 4.5 下一个 魏冲，熊东飞 4.5
+			//String patternOneMatch ="(\\D*)(\\d+\\.?\\d*)(\\D*)";
+			String patternOneMatch ="([^0-9\\.]*)([0-9\\.]+)([^0-9\\.]*)";
 			Matcher matcherOne = Pattern.compile(patternOneMatch).matcher(txtRecord);
 			if(matcherOne.find()) {
 				System.out.println("-->有效待处理，只有一个金额，没有报余额的记录："+txtRecord);
-				payLoadOne.add(txtRecord);
 				RecodeModel recodeModel=setOneMatch(matcherOne,txtRecord,userStrList);
 				result.add(recodeModel);
 				continue;
@@ -132,7 +131,12 @@ public class ExcelServiceImpl implements ExcelService{
 			//对next中包含的各种乱数据处理
 			String next = recodeModel.getNext();
 			if(StringUtils.isNotBlank(next)) {
-				next=subSpacialChar(next).replace("下一位", "").replace("下一个", "").replace("，", "").replace(",", "").replace("个", "").replace("位", "");
+				try {
+					next = subSpacialChar(next).replace("下一位", "").replace("下一个", "").replace("，", "").replace(",", "")
+							.replace("个", "").replace("位", "");
+				} catch (Exception e) {
+					next=null;
+				}
 				recodeModel.setNext(next);
 			}
 			//对余额进行初始化
@@ -217,7 +221,8 @@ public class ExcelServiceImpl implements ExcelService{
 		BigDecimal money =new BigDecimal(matcherOne.group(1));
 		BigDecimal allMoney = new BigDecimal(matcherOne.group(2));
 		//【2.1】只取开头和末尾数据
-		String patternMatch ="(\\D*)\\d+\\.?\\d*([^0-9\\.]+)\\d+\\.?\\d*(\\D*)";
+		String patternMatch ="([^0-9\\.]*)[0-9\\.]+([^0-9\\.]+)[0-9\\.]+([^0-9\\.]*)";
+		//String patternMatch ="(\\D*)\\d+\\.?\\d*([^0-9\\.]+)\\d+\\.?\\d*(\\D*)";
 		Matcher matcher = Pattern.compile(patternMatch).matcher(txtRecord);
 		if(!matcher.find()) {
 			System.err.println("取开头和结尾没有匹配上："+txtRecord);
@@ -229,7 +234,7 @@ public class ExcelServiceImpl implements ExcelService{
 			//下一等数据放在后面清除
 			nexName=matcher.group(2);
 			if(nexName.contains("余额")) {
-				nexName=nexName.replace("余额", "");
+				nexName=nexName.replace("余额", "").replace("余", "");
 			}
 		}
 		
