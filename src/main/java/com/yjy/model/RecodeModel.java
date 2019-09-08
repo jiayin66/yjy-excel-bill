@@ -16,11 +16,11 @@ public class RecodeModel {
 	private String name;
 	
 	@JSONField(ordinal=2)
-	@Excel(name = "½ð¶î", orderNum = "1",width = 15)
+	@Excel(name = "½ð¶î", orderNum = "1",width = 15,type=10)
 	private BigDecimal money;
 	
 	@JSONField(ordinal=3)
-	@Excel(name = "Óà¶î", orderNum = "2",width = 15)
+	@Excel(name = "Óà¶î", orderNum = "2",width = 15,type=10)
 	private BigDecimal allMoney;
 	
 	@JSONField(ordinal=4)
