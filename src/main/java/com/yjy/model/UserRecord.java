@@ -19,6 +19,6 @@ public class UserRecord {
 	@Excel(name = "¼ÇÂ¼", orderNum = "0")
     private String txtRecord;
 	
-	@Excel(name = "ÐòºÅ", orderNum = "1")
-	private Integer id;
+//	@Excel(name = "ÐòºÅ", orderNum = "1")
+//	private Integer id;
 }

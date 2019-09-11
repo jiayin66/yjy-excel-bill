@@ -1,5 +1,7 @@
 package com.yjy.service.impl;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -58,6 +60,33 @@ public class ExcelServiceImpl implements ExcelService{
 		}
 		
 	}
+	
+	public void readJiluTxt(MultipartFile txt, MultipartFile user, HttpServletResponse response, String type) {
+		//1.解析用户拿到用户id集合
+		List<User> userList = getTxt(user,User.class);
+		List<String> userStrList=new ArrayList<String>();
+		for(User userModel:userList) {
+			userStrList.add(userModel.getName());
+		}
+		//2.解析报账记录，拿到有效行
+		List<String> txtRecordList=new ArrayList<String>();	
+		 try {
+			InputStreamReader is = new InputStreamReader(txt.getInputStream());
+			BufferedReader bf = new BufferedReader(is);
+			String readLine = bf.readLine();
+			 while (readLine != null) {  
+				 readLine = bf.readLine(); // 一次读入一行数据  
+				 if(!StringUtils.isEmpty(readLine)) {
+					 txtRecordList.add(readLine);
+				 }
+	            }  
+		} catch (Exception e) {
+			System.out.println("错误原因："+e.getMessage());
+			e.printStackTrace();
+			throw new RuntimeException("读取txt数据失败");
+		}
+		excelCreate(response, type, userStrList, txtRecordList);
+	}
 
 	public void readJiluExcel(MultipartFile record,MultipartFile user,HttpServletResponse response,String type) {
 		//1.解析用户拿到用户id集合
@@ -70,18 +99,35 @@ public class ExcelServiceImpl implements ExcelService{
 		List<UserRecord> txtRecordList = getTxt(record,UserRecord.class);
 		System.out.println("读取excel拿到的数据"+JSON.toJSONString(txtRecordList));
 		System.out.println("本次判断总数："+txtRecordList.size());
+		
+		List<String> recodeStringList=new ArrayList<String>();
+		for(UserRecord userRecord:txtRecordList) {
+			recodeStringList.add(userRecord.getTxtRecord());
+		}
+		excelCreate(response, type, userStrList, recodeStringList);
+	}
+
+	private void excelCreate(HttpServletResponse response, String type, List<String> userStrList,
+			List<String> txtRecordList) {
 		//（1）最终结果
 		List<RecodeModel> result=new ArrayList<RecodeModel>();
 		//（2）这个表示中间数据，支持二次导入，为了查看缺失什么
 		List<UserRecord> commenResult=new ArrayList<UserRecord>();
 		for(int i=0;i<txtRecordList.size();i++) {
-			String txtRecord = txtRecordList.get(i).getTxtRecord();
+			String txtRecord = txtRecordList.get(i);
 			System.out.println("第【"+(i+1)+"】条待判断的记录："+txtRecord);
 			//【1】按照这个正则匹配过滤时间格式: 熊东飞(211435812) 11:51:27
 			String patternTime =".*(\\d{1,2}:\\d{1,2}:\\d{1,2}).*";
 			Matcher matcherTime = Pattern.compile(patternTime).matcher(txtRecord);
 			if(matcherTime.find()) {
 				System.out.println("-->无效过滤，此条记录是时间（两个冒号判断）"+txtRecord);
+				continue;
+			}
+			//【1.0】按照这个正则匹配过滤时间格式:  2019-09-11 
+			String patternDate =".*(\\d{4}-\\d{2}-\\d{2}).*";
+			Matcher matchDate = Pattern.compile(patternDate).matcher(txtRecord);
+			if(matchDate.find()) {
+				System.out.println("-->无效过滤，此条记录是时间（日期格式）"+txtRecord);
 				continue;
 			}
 		
@@ -102,18 +148,7 @@ public class ExcelServiceImpl implements ExcelService{
 				}
 				continue;
 			}
-			//【3】匹配这种 ：严志凌下一位 镇阳 /下一个
-			String patternNext ="(\\D*)下一(\\D*)";
-			Matcher matcherNext = Pattern.compile(patternNext).matcher(txtRecord);
-			if(matcherNext.find()) {
-				//(1.2)修改有效数据
-				//(2.2)修改中间表数据
-				System.out.println("-->有效待处理，此条记录是单纯的报下一位"+txtRecord);
-				setNext(result,matcherNext,commenResult);
-				continue;
-			}
-			
-			//【4】没有报余额，只报当前金额  ：熊东飞 4.5 下一个 魏冲，熊东飞 4.5
+			//【3】没有报余额，只报当前金额  ：熊东飞 4.5 下一个 魏冲，熊东飞 4.5
 			//String patternOneMatch ="(\\D*)(\\d+\\.?\\d*)(\\D*)";
 			String patternOneMatch ="([^0-9\\.]*)([0-9\\.]+)([^0-9\\.]*)";
 			Matcher matcherOne = Pattern.compile(patternOneMatch).matcher(txtRecord);
@@ -124,6 +159,19 @@ public class ExcelServiceImpl implements ExcelService{
 				continue;
 			}
 			System.err.println("-->无效过滤,没有被规则拦截的记录:"+txtRecord);
+			
+			//【4】匹配这种 ：严志凌下一位 镇阳 /下一个 （这个要在3之后，避免把正常数据拦截）
+			String patternNext ="(\\D*)下一(\\D*)";
+			Matcher matcherNext = Pattern.compile(patternNext).matcher(txtRecord);
+			if(matcherNext.find()) {
+				//(1.2)修改有效数据
+				//(2.2)修改中间表数据
+				System.out.println("-->有效待处理，此条记录是单纯的报下一位"+txtRecord);
+				setNext(result,matcherNext,commenResult);
+				continue;
+			}
+			
+			
 		}
 		System.out.println("----------------------解析完成-------------------------------");
 		System.out.println("完整记录个数:"+result.size()+",所有数据原顺序如下请核对：");
@@ -133,7 +181,7 @@ public class ExcelServiceImpl implements ExcelService{
 			if(StringUtils.isNotBlank(next)) {
 				try {
 					next = subSpacialChar(next).replace("下一位", "").replace("下一个", "").replace("，", "").replace(",", "")
-							.replace("个", "").replace("位", "");
+							.replace("个", "").replace("位", "").replace(" ", "");
 				} catch (Exception e) {
 					next=null;
 				}
@@ -162,9 +210,6 @@ public class ExcelServiceImpl implements ExcelService{
 		}else {
 			excelTemplateExporter.exportExcel(commenResult, null, "记账", UserRecord.class, "炊事班-记账-基础.xls", response);
 		}
-		
-		
-	
 	}
 	
 	
@@ -265,15 +310,19 @@ public class ExcelServiceImpl implements ExcelService{
 	private <T> List<T> getTxt(MultipartFile file,Class cla){
 		try {
 			ImportParams params = new ImportParams();
-			params.setNeedVerfiy(true);
+			 params.setTitleRows(0);
+			params.setNeedVerfiy(false);
 			ExcelImportResult<T> resul = ExcelImportUtil.importExcelMore(file.getInputStream(), cla,
 					params);
 			List<T> list = resul.getList();
 			return list;
 		} catch (Exception e) {
+			System.out.println("错误原因："+e.getMessage());
+			e.printStackTrace();
+			throw new RuntimeException("读取:"+cla.getSimpleName()+"excel数据失败");
 			
 		}
-		return null;
+		//return null;
 	}
 
 	/**
@@ -319,6 +368,8 @@ public class ExcelServiceImpl implements ExcelService{
 		}
 		return resultStr;
 	}
+
+	
 	
 	
 }
