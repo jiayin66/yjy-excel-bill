@@ -7,6 +7,9 @@ import lombok.Getter;
 import lombok.Setter;
 @Getter
 @Setter
+/**
+ * ≤‚ ‘git
+ */
 public class User {
 	@Excel(name = "–Ú∫≈", orderNum = "0")
 	private Integer id;
