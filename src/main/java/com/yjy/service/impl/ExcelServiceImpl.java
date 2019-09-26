@@ -293,7 +293,7 @@ public class ExcelServiceImpl implements ExcelService{
 				
 			}
 			if(userName==null) {
-				System.out.println("无法找到报账人，略过本次记录："+txtRecord);
+				System.err.println("无法找到报账人，略过本次记录："+txtRecord);
 				return null;
 			}
 		}
