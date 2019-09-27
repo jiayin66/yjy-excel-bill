@@ -7,7 +7,9 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -62,11 +64,18 @@ public class ExcelServiceImpl implements ExcelService{
 	}
 	
 	public void readJiluTxt(MultipartFile txt, MultipartFile user, HttpServletResponse response, String type) {
-		//1.解析用户拿到用户id集合
+		//1.解析用户拿到用户id集合。增加用户中不能重复的判断。
 		List<User> userList = getTxt(user,User.class);
 		List<String> userStrList=new ArrayList<String>();
+		Set<String> ss=new HashSet<String>();
+		
 		for(User userModel:userList) {
-			userStrList.add(userModel.getName());
+			String name = userModel.getName();
+			userStrList.add(name);
+			ss.add(name);
+		}
+		if(userStrList.size()!=ss.size()) {
+			throw new RuntimeException("全量用户中有重复数据，请核实并删除，保持数据准确性！");
 		}
 		//2.解析报账记录，拿到有效行
 		List<String> txtRecordList=new ArrayList<String>();	
@@ -295,7 +304,7 @@ public class ExcelServiceImpl implements ExcelService{
 	 */
 	private String getRealName(String txtRecord, List<String> userStrList, String userName) {
 		if (StringUtils.isBlank(userName)) {
-			throw new RuntimeException("核实此条消费记录归属哪位人员，补充聊天记录重新尝试！记录为：" + txtRecord);
+			throw new RuntimeException("报餐未报消费者名字！核实此条消费记录归属哪位人员，手动补充姓名重新尝试！记录为：" + txtRecord);
 		}
 		String result=null;
 		for (String str : userStrList) {
@@ -305,7 +314,7 @@ public class ExcelServiceImpl implements ExcelService{
 			}
 		}
 		if (result==null) {
-			throw new RuntimeException("核实此条消费记录归属哪位人员，补充聊天记录重新尝试!记录为：" + txtRecord);
+			throw new RuntimeException("用户列表缺失此人，补充用户列表重新尝试!记录为：" + txtRecord);
 		}
 		return result;
 	}
