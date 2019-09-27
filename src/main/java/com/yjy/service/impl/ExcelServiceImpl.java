@@ -218,14 +218,9 @@ public class ExcelServiceImpl implements ExcelService{
 		String one = matcherOne.group(1);
 		String two = matcherOne.group(2);
 		String three = matcherOne.group(3);
-		for(String userName:userStrList) {
-			if(one.contains(userName)) {
-				recodeModel=new RecodeModel(userName,new BigDecimal(two),null,three);
-				return recodeModel;
-			}
-		}
-		System.err.println("没有从用户中找到这个记录："+txtRecord);
-		return null;
+		String realName=getRealName(txtRecord,userStrList,one);
+		recodeModel=new RecodeModel(realName,new BigDecimal(two),null,three);
+		return recodeModel;
 	}
 
 	private void setNext(List<RecodeModel> result, Matcher matcherNext,List<UserRecord> commenResult) {
@@ -284,21 +279,35 @@ public class ExcelServiceImpl implements ExcelService{
 		}
 		
 		//【2.2】必须跟数据库用户名保持一致，否则记账重复。下一位无需截取
-		if (StringUtils.isNotBlank(userName)) {
-			for(String str:userStrList) {
-				if(userName.indexOf(str)!=-1) {
-					userName=str;
-					break;
-				}
-				
-			}
-			if(userName==null) {
-				System.err.println("无法找到报账人，略过本次记录："+txtRecord);
-				return null;
-			}
-		}
+		userName = getRealName(txtRecord, userStrList, userName);
+		
+		
 		RecodeModel recodeModel = new RecodeModel(userName, money, allMoney, nexName);
 		return recodeModel;
+	}
+
+	/**
+	 * 根据提取的name和用户列表的name比对
+	 * @param txtRecord
+	 * @param userStrList
+	 * @param userName
+	 * @return
+	 */
+	private String getRealName(String txtRecord, List<String> userStrList, String userName) {
+		if (StringUtils.isBlank(userName)) {
+			throw new RuntimeException("核实此条消费记录归属哪位人员，补充聊天记录重新尝试！记录为：" + txtRecord);
+		}
+		String result=null;
+		for (String str : userStrList) {
+			if (userName.indexOf(str) != -1) {
+				result = str;
+				break;
+			}
+		}
+		if (result==null) {
+			throw new RuntimeException("核实此条消费记录归属哪位人员，补充聊天记录重新尝试!记录为：" + txtRecord);
+		}
+		return result;
 	}
 
 	/**
