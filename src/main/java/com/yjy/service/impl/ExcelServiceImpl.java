@@ -67,15 +67,9 @@ public class ExcelServiceImpl implements ExcelService{
 		//1.解析用户拿到用户id集合。增加用户中不能重复的判断。
 		List<User> userList = getTxt(user,User.class);
 		List<String> userStrList=new ArrayList<String>();
-		Set<String> ss=new HashSet<String>();
-		
 		for(User userModel:userList) {
 			String name = userModel.getName();
 			userStrList.add(name);
-			ss.add(name);
-		}
-		if(userStrList.size()!=ss.size()) {
-			throw new RuntimeException("全量用户中有重复数据，请核实并删除，保持数据准确性！");
 		}
 		//2.解析报账记录，拿到有效行
 		List<String> txtRecordList=new ArrayList<String>();	
