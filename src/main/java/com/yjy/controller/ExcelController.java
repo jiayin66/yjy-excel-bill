@@ -55,6 +55,7 @@ public class ExcelController {
 			@RequestParam("type") String type,HttpServletResponse response) {
 		excelService.readJiluExcel(record,user,response,type);
 	}
+	//用文本格式
 	@PostMapping("/z")
 	public void readJiluTxt(@RequestParam("txt") MultipartFile txt,@RequestParam("user") MultipartFile user,
 			@RequestParam("type") String type,HttpServletResponse response) {

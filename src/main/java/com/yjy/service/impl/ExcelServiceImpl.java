@@ -78,10 +78,10 @@ public class ExcelServiceImpl implements ExcelService{
 			BufferedReader bf = new BufferedReader(is);
 			String readLine = bf.readLine();
 			 while (readLine != null) {  
-				 readLine = bf.readLine(); // 一次读入一行数据  
 				 if(!StringUtils.isEmpty(readLine)) {
 					 txtRecordList.add(readLine);
 				 }
+				 readLine = bf.readLine(); // 一次读入一行数据  
 	            }  
 		} catch (Exception e) {
 			System.out.println("错误原因："+e.getMessage());
@@ -134,10 +134,10 @@ public class ExcelServiceImpl implements ExcelService{
 				continue;
 			}
 		
-			//【2】只匹配2个金额的数据: 聂鑫勇5.5 余额819下一位王亮明，李谨延 3  下一位/个 张志龙 余额 917
+			//【2.0】只匹配2个金额的数据: 聂鑫勇5.5 余额819下一位王亮明，李谨延 3  下一位/个 张志龙 余额 917
 			//String patternTwoMatch ="\\D*(\\d+\\.?\\d*)[^0-9\\.]+(\\d+\\.?\\d*)\\D*";
 			//此规则，开头必须有名字。末尾可以没名字
-			String patternTwoMatch ="[^0-9\\.]*([0-9\\.]+)[^0-9\\.]+([0-9\\.]+)[^0-9\\.]*";
+			String patternTwoMatch ="^[^0-9\\.]*([0-9\\.]+)[^0-9\\.]+([0-9\\.]+)[^0-9\\.]*$";
 			Matcher matcherTwo = Pattern.compile(patternTwoMatch).matcher(txtRecord);
 			if(matcherTwo.find()) {
 				System.out.println("-->有效待处理，此条记录有两个金额："+txtRecord);
@@ -151,9 +151,17 @@ public class ExcelServiceImpl implements ExcelService{
 				}
 				continue;
 			}
-			//【3】没有报余额，只报当前金额  ：熊东飞 4.5 下一个 魏冲，熊东飞 4.5
+			
+			//【2.1】上面的精准匹配如果匹配不上说明有人金额中带有空格等特殊字符
+			String patternTwoMatchError ="[^0-9\\.]*([0-9\\.]+)[^0-9\\.]+([0-9\\.]+)[^0-9\\.]*";
+			Matcher matcherTwoError = Pattern.compile(patternTwoMatchError).matcher(txtRecord);
+			if(matcherTwoError.find()) {
+				throw new RuntimeException("请核实，此人金额输入格式错误："+txtRecord);
+			}
+			
+			//【3.0】没有报余额，只报当前金额  ：熊东飞 4.5 下一个 魏冲，熊东飞 4.5
 			//String patternOneMatch ="(\\D*)(\\d+\\.?\\d*)(\\D*)";
-			String patternOneMatch ="([^0-9\\.]*)([0-9\\.]+)([^0-9\\.]*)";
+			String patternOneMatch ="^([^0-9\\.]*)([0-9\\.]+)([^0-9\\.]*)$";
 			Matcher matcherOne = Pattern.compile(patternOneMatch).matcher(txtRecord);
 			if(matcherOne.find()) {
 				System.out.println("-->有效待处理，只有一个金额，没有报余额的记录："+txtRecord);
@@ -161,10 +169,17 @@ public class ExcelServiceImpl implements ExcelService{
 				result.add(recodeModel);
 				continue;
 			}
-			System.err.println("-->无效过滤,没有被规则拦截的记录:"+txtRecord);
 			
+			//【3.1】对非精准匹配的报错
+			String patternOneMatchError ="^([^0-9\\.]*)([0-9\\.]+)([^0-9\\.]*)$";
+			Matcher matcherOneError = Pattern.compile(patternOneMatchError).matcher(txtRecord);
+			if(matcherOneError.find()) {
+				throw new RuntimeException("请核实，此人金额输入格式错误："+txtRecord);
+			}
+			
+
 			//【4】匹配这种 ：严志凌下一位 镇阳 /下一个 （这个要在3之后，避免把正常数据拦截）
-			String patternNext ="(\\D*)下一(\\D*)";
+			String patternNext ="^(\\D*)下一(\\D*)$";
 			Matcher matcherNext = Pattern.compile(patternNext).matcher(txtRecord);
 			if(matcherNext.find()) {
 				//(1.2)修改有效数据
@@ -174,8 +189,9 @@ public class ExcelServiceImpl implements ExcelService{
 				continue;
 			}
 			
-			
+			System.err.println("-->无效过滤,没有被规则拦截的记录:"+txtRecord);
 		}
+		
 		System.out.println("----------------------解析完成-------------------------------");
 		System.out.println("完整记录个数:"+result.size()+",所有数据原顺序如下请核对：");
 		for(RecodeModel recodeModel:result) {
