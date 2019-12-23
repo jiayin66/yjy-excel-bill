@@ -1,0 +1,8 @@
+jp:
+  swagger:
+    basePackage: com.yjy.controller
+    apiInfo:
+      title: demo
+      description: demo
+      version: 1.0.0
+      email: 2864245248@qq.com

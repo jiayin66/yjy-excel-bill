@@ -14,8 +14,12 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.yjy.service.ExcelService;
 
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+
 @RestController
 @RequestMapping("/e")
+@Api(tags="yjy饭卡管理系统")
 public class ExcelController {
 	@Autowired
 	private ExcelService excelService;
@@ -52,13 +56,18 @@ public class ExcelController {
 	 */
 	@PostMapping("/j")
 	public void readJiluExcel(@RequestParam("record") MultipartFile record,@RequestParam("user") MultipartFile user,
-			@RequestParam("type") String type,HttpServletResponse response) {
+			@RequestParam(value="type",required=false) String type,HttpServletResponse response) {
+		
 		excelService.readJiluExcel(record,user,response,type);
 	}
 	//用文本格式
 	@PostMapping("/z")
+	@ApiOperation("读取txt文本的最新接口")
 	public void readJiluTxt(@RequestParam("txt") MultipartFile txt,@RequestParam("user") MultipartFile user,
 			@RequestParam("type") String type,HttpServletResponse response) {
+		if(type==null) {
+			type="1";
+		}
 		excelService.readJiluTxt(txt,user,response,type);
 	}
 
